@@ -68,15 +68,17 @@ static void session_id_receive(struct repository *r UNUSED,
 	trace2_data_string("transfer", NULL, "client-sid", client_sid);
 }
 
-static int object_info_advertise(struct repository *r, struct strbuf *value UNUSED)
+static int object_info_advertise(struct repository *r, struct strbuf *value)
 {
 	if (advertise_object_info == -1 &&
 	    repo_config_get_bool(r, "transfer.advertiseobjectinfo",
 				 &advertise_object_info)) {
 		/* disabled by default */
-		advertise_object_info = 0;
+		return 0;
 	}
-	return advertise_object_info;
+	if (value)
+		strbuf_addstr(value, "size");
+	return 1;
 }
 
 struct protocol_capability {
