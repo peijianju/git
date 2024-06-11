@@ -1313,6 +1313,16 @@ static int add_haves(struct fetch_negotiator *negotiator,
 	return haves_added;
 }
 
+// write_fetch_command_and_capabilities has two fold functions:
+// 1) write the command of fetch into request buffer
+// 2) write git capabilities into request buffer
+//     The capabilities are the feature or options supported during client and server
+//     communication. Writing the capabilities in request ensure the client and server
+//     are at the same page about the suported features.
+//  For details of git's pack protocol, see https://git-scm.com/docs/pack-protocol or
+//     https://gitlab.com/gitlab-org/git/-/blob/master/Documentation/gitprotocol-pack.txt
+//  For versions 0 and 1 of the pack protocol, see https://git-scm.com/docs/protocol-capabilities
+//  For version 2, see https://git-scm.com/docs/protocol-v2
 static void write_fetch_command_and_capabilities(struct strbuf *req_buf,
 						 const struct string_list *server_options)
 {
@@ -2046,6 +2056,8 @@ static const struct object_id *iterate_ref_map(void *cb_data)
 	return &ref->old_oid;
 }
 
+// fetch_pack is the meat of pack fetching logic
+// One place it is called is the built-in fetch-pack, e.g. when you do `git fetch-pack`
 struct ref *fetch_pack(struct fetch_pack_args *args,
 		       int fd[],
 		       const struct ref *ref,
