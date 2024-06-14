@@ -1239,6 +1239,11 @@ static inline void move_array(void *dst, const void *src, size_t n, size_t size)
 		} \
 	} while (0)
 
+/*
+  xstrdup_or_null mean execute string duplicatation or return null
+  
+  x is a convention of execute
+*/
 static inline char *xstrdup_or_null(const char *str)
 {
 	return str ? xstrdup(str) : NULL;

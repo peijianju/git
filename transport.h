@@ -67,7 +67,7 @@ struct transport {
 
 	struct remote *remote;
 	const char *url;
-	void *data;
+	void *data; // data received from transport
 	const struct ref *remote_refs;
 
 	/**

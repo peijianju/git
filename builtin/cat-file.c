@@ -26,9 +26,9 @@
 #include "write-or-die.h"
 
 enum batch_mode {
-	BATCH_MODE_CONTENTS,
-	BATCH_MODE_INFO,
-	BATCH_MODE_QUEUE_AND_DISPATCH,
+	BATCH_MODE_CONTENTS, // --batch, show content and info
+	BATCH_MODE_INFO, // --batch-check, just show info
+	BATCH_MODE_QUEUE_AND_DISPATCH, // --batch--command, consume what ever user passed in contents/info
 };
 
 struct batch_options {
@@ -41,6 +41,12 @@ struct batch_options {
 	int transform_mode; /* may be 'w' or 'c' for --filters or --textconv */
 	char input_delim;
 	char output_delim;
+
+	// format is the output format of the results
+  // E.g. --batch-check='%(objectname) %(objecttype)'
+	// output is like a2ba162cda2acc171c3e36acbbc854792b093cb7 commit
+	// See https://www.git-scm.com/docs/git-cat-file#_batch_output
+	// We have a default format see DEFAULT_FORMAT
 	const char *format;
 };
 
@@ -662,6 +668,8 @@ static void parse_cmd_info(struct batch_options *opt,
 	batch_one_object(line, output, opt, data);
 }
 
+// dispatch_calls is the entrance when flush command is given or EOF is give in batch mode.
+// All the function calls queueed in queued_cmd are dispatched.
 static void dispatch_calls(struct batch_options *opt,
 		struct strbuf *output,
 		struct expand_data *data,
@@ -689,7 +697,7 @@ static void free_cmds(struct queued_cmd *cmd, size_t *nr)
 	*nr = 0;
 }
 
-
+// Commands that are suppored in --batch-command mode
 static const struct parse_cmd {
 	const char *name;
 	parse_cmd_fn_t fn;
@@ -700,6 +708,7 @@ static const struct parse_cmd {
 	{ "flush", NULL, 0},
 };
 
+// batch_objects_command is the entrance when --batch-command is provided
 static void batch_objects_command(struct batch_options *opt,
 				    struct strbuf *output,
 				    struct expand_data *data)
@@ -720,6 +729,8 @@ static void batch_objects_command(struct batch_options *opt,
 			die(_("whitespace before command: '%s'"), input.buf);
 
 		for (i = 0; i < ARRAY_SIZE(commands); i++) {
+			// check if  input.buf is prefixed with commands[i].name
+			// if not, iterate to next
 			if (!skip_prefix(input.buf, commands[i].name, &cmd_end))
 				continue;
 
@@ -729,6 +740,9 @@ static void batch_objects_command(struct batch_options *opt,
 					die(_("%s requires arguments"),
 					    commands[i].name);
 
+				// cmd_end is in the form of " <object>";
+				// its first char is ' ', so we skip the first char
+				// and take the rest
 				p = cmd_end + 1;
 			} else if (*cmd_end) {
 				die(_("%s takes no arguments"),
@@ -742,6 +756,10 @@ static void batch_objects_command(struct batch_options *opt,
 			die(_("unknown command: '%s'"), input.buf);
 
 		if (!strcmp(cmd->name, "flush")) {
+			// !strcmp is like cmd->name == "flush", notice !strcmp() is a bit
+			// conter intuitive, since it has a !. Think strcmp() like
+			// asking "is there a difference?" instead of "are they equal?"
+			// while !strcmp() is like asking "are they equal?"
 			dispatch_calls(opt, output, data, queued_cmd, nr);
 			free_cmds(queued_cmd, &nr);
 		} else if (!opt->buffer_output) {
@@ -768,6 +786,8 @@ static void batch_objects_command(struct batch_options *opt,
 
 #define DEFAULT_FORMAT "%(objectname) %(objecttype) %(objectsize)"
 
+// batch_objects is then entrance when cat-file has a bactch mode
+// i.e. --batch, --batch-command, ..., see batch_mode
 static int batch_objects(struct batch_options *opt)
 {
 	struct strbuf input = STRBUF_INIT;
@@ -851,11 +871,13 @@ static int batch_objects(struct batch_options *opt)
 	save_warning = warn_on_object_refname_ambiguity;
 	warn_on_object_refname_ambiguity = 0;
 
+	// Entrance of --batch-command
 	if (opt->batch_mode == BATCH_MODE_QUEUE_AND_DISPATCH) {
 		batch_objects_command(opt, &output, &data);
 		goto cleanup;
 	}
 
+    // Entrace of --batch and --batch-check
 	while (strbuf_getdelim_strip_crlf(&input, stdin, opt->input_delim) != EOF) {
 		if (data.split_on_whitespace) {
 			/*

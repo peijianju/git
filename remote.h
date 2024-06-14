@@ -57,6 +57,8 @@ struct remote_state {
 void remote_state_clear(struct remote_state *remote_state);
 struct remote_state *remote_state_new(void);
 
+
+// remote is the data structure represents a git remote
 struct remote {
 	struct hashmap_entry ent;
 
