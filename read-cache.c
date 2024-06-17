@@ -202,6 +202,9 @@ static int verify_hdr(struct cache_header *hdr, unsigned long size)
 	return 0;
 }
 
+/*
+read_cache, return 0 if index file not exist
+*/
 int read_cache(void)
 {
 	int fd, i;
@@ -213,7 +216,7 @@ int read_cache(void)
 	errno = EBUSY;
 	if (active_cache)
 		return error("more than one cachefile");
-	errno = ENOENT;
+	errno = ENOENT; // ENOENT: Error (E) of no entry (NOENT)
 	sha1_file_directory = getenv(DB_ENVIRONMENT);
 	if (!sha1_file_directory)
 		sha1_file_directory = DEFAULT_DB_ENVIRONMENT;
@@ -221,6 +224,7 @@ int read_cache(void)
 		return error("no access to SHA1 file directory");
 	fd = open(".dircache/index", O_RDONLY);
 	if (fd < 0)
+	    // If file not exist, return 0; otherwise error
 		return (errno == ENOENT) ? 0 : error("open failed");
 
 	map = (void *)-1;

@@ -73,15 +73,34 @@ static int add_cache_entry(struct cache_entry *ce)
 	return 0;
 }
 
+/*
+index_fd, 
+
+deflate (compress) the input file (fd), and put it the into index
+
+- path is the input file path to put into the idex
+- namelen is the input file name's lenght in bytes
+- fd is the file descriptor of the input file
+- st is the statistics data of the input file
+*/
 static int index_fd(const char *path, int namelen, struct cache_entry *ce, int fd, struct stat *st)
 {
 	z_stream stream;
+
+	// max_out_bytes is consist of metadata size (namelen + 200) and file size (st->st_size).
+	// We will use zlip compress the file, so the actual size should be less than st->st_siz.
+	// This is why it is called max_out_bytes.
 	int max_out_bytes = namelen + st->st_size + 200;
+
+	// out is the memory allocated for compressed output data (include metadata and file content)
 	void *out = malloc(max_out_bytes);
 	void *metadata = malloc(namelen + 200);
+
+	// memory map fd
 	void *in = mmap(NULL, st->st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	SHA_CTX c;
 
+	// Sincd fd is mapped to memory by mmap, so fd can be closed
 	close(fd);
 	if (!out || (int)(long)in == -1)
 		return -1;
@@ -116,6 +135,11 @@ static int index_fd(const char *path, int namelen, struct cache_entry *ce, int f
 	return write_sha1_buffer(ce->sha1, out, stream.total_out);
 }
 
+/*
+add_file_to_cache 
+- path is the file path to add
+- cache entory is round up to the mulitple of 8 bytes (TODO, still not get why)
+*/
 static int add_file_to_cache(char *path)
 {
 	int size, namelen;
@@ -156,6 +180,9 @@ static int add_file_to_cache(char *path)
 	return add_cache_entry(ce);
 }
 
+/*
+write_cache write an array of cache entres to index file descriptor (new fd)
+*/
 static int write_cache(int newfd, struct cache_entry **cache, int entries)
 {
 	SHA_CTX c;

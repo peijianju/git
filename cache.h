@@ -53,19 +53,29 @@ struct cache_entry {
 	unsigned int st_uid;
 	unsigned int st_gid;
 	unsigned int st_size;
-	unsigned char sha1[20];
+	unsigned char sha1[20]; // a sha1 file with defalted data to write to index
 	unsigned short namelen;
 	unsigned char name[0];
 };
 
 const char *sha1_file_directory;
+
+// active_cache is an array of active index cache entries
 struct cache_entry **active_cache;
+
+// active_nr
+// active_alloc
 unsigned int active_nr, active_alloc;
 
 #define DB_ENVIRONMENT "SHA1_FILE_DIRECTORY"
 #define DEFAULT_DB_ENVIRONMENT ".dircache/objects"
 
+// cache_entry_size get the size of entry, it use offsetof to get where name 
+// field is stored, add the len (the length of path), them add another 8 bytes;
+// & ~7 is rounds down the result to the nearest multiple of 8. 
+// This ensures that the size is aligned to an 8-byte boundary.
 #define cache_entry_size(len) ((offsetof(struct cache_entry,name) + (len) + 8) & ~7)
+
 #define ce_size(ce) cache_entry_size((ce)->namelen)
 
 #define alloc_nr(x) (((x)+16)*3/2)
