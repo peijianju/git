@@ -184,8 +184,16 @@ static int error(const char * string)
 	return -1;
 }
 
+
+// verify_hdr is verying header's sha1 match file content (excluding sha1 field in header)
 static int verify_hdr(struct cache_header *hdr, unsigned long size)
 {
+	// SHA_CTX from open ssl openssl/sha.h
+	// SHA_CTX is a structure used to hold the state of the SHA-1 computation.
+	// SHA1_Init init context for hashing
+	// SHA1_Update int SHA1_Update(SHA_CTX *c, const void *data, size_t len);
+	// it associate data with a chunk of data
+	// SHA1_Final computes the hash
 	SHA_CTX c;
 	unsigned char sha1[20];
 
@@ -194,10 +202,13 @@ static int verify_hdr(struct cache_header *hdr, unsigned long size)
 	if (hdr->version != 1)
 		return error("bad version");
 	SHA1_Init(&c);
+
+	// offsetof computes the bytes offset from the beginning of cache_header to the feild of sha1
+	// the sha1 field is exlucded from the actual SHA1 compute
 	SHA1_Update(&c, hdr, offsetof(struct cache_header, sha1));
 	SHA1_Update(&c, hdr+1, size - sizeof(*hdr));
-	SHA1_Final(sha1, &c);
-	if (memcmp(sha1, hdr->sha1, 20))
+	SHA1_Final(sha1, &c); //
+	if (memcmp(sha1, hdr->sha1, 20)) // make sure sha1 is in the header
 		return error("bad header sha1");
 	return 0;
 }
@@ -213,7 +224,7 @@ int read_cache(void)
 	void *map;
 	struct cache_header *hdr;
 
-	errno = EBUSY;
+	errno = EBUSY; // EBUSY is Resource busy
 	if (active_cache)
 		return error("more than one cachefile");
 	errno = ENOENT; // ENOENT: Error (E) of no entry (NOENT)
@@ -227,16 +238,26 @@ int read_cache(void)
 	    // If file not exist, return 0; otherwise error
 		return (errno == ENOENT) ? 0 : error("open failed");
 
+	//  (void *)-1 is a invalid value of void pointer, often indicates error.
+	//	here we use it to init a void pointer, so that later if it is still this value
+	//  we know it there is an error
 	map = (void *)-1;
+
+	// fstat puts fd's statistics into st
 	if (!fstat(fd, &st)) {
 		map = NULL;
 		size = st.st_size;
 		errno = EINVAL;
+
+		// cache header what should be alread exising in the cache fil
+		// if index file's size > cache_header size, it means there are some un committed content in the cache
 		if (size > sizeof(struct cache_header))
+
+			// map fd to memory
 			map = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
 	}
 	close(fd);
-	if (-1 == (int)(long)map)
+	if (-1 == (int)(long)map) //  MAP_FAILED (in sys/mman.) can be used here map == MAP_FAILED
 		return error("mmap failed");
 
 	hdr = map;
@@ -247,6 +268,7 @@ int read_cache(void)
 	active_alloc = alloc_nr(active_nr);
 	active_cache = calloc(active_alloc, sizeof(struct cache_entry *));
 
+	// read cache entries from fd mmap
 	offset = sizeof(*hdr);
 	for (i = 0; i < hdr->entries; i++) {
 		struct cache_entry *ce = map + offset;

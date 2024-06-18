@@ -136,9 +136,9 @@ static int index_fd(const char *path, int namelen, struct cache_entry *ce, int f
 }
 
 /*
-add_file_to_cache 
+add_file_to_cache:
 - path is the file path to add
-- cache entory is round up to the mulitple of 8 bytes (TODO, still not get why)
+- cache entry size is round up to the mulitple of 8 bytes (TODO, still not get why)
 */
 static int add_file_to_cache(char *path)
 {
@@ -268,6 +268,9 @@ int main(int argc, char **argv)
 			goto out;
 		}
 	}
+
+	// active_cache, active_nr is declared in cache.h
+	// nr means number
 	if (!write_cache(newfd, active_cache, active_nr) && !rename(".dircache/index.lock", ".dircache/index"))
 		return 0;
 out:
