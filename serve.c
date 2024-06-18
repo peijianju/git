@@ -50,8 +50,18 @@ static void object_format_receive(struct repository *r UNUSED,
 
 static int session_id_advertise(struct repository *r, struct strbuf *value)
 {
+	// This is a good example of interpretting the int returnd value,
+	// see logseq://graph/logseq?block-id=66708371-be8c-4d5a-a88f-8e7082132d53
+	// The return value of repo_config_get_bool does NOT "transfer.advertisesid" is true or false
+	// it means if repo_config_get_bool itself has errors or no.
+	// So the following line means if advertise_sid == -1 (advertise_sid is not cached) and
+	// does repo_config_get_bool has error?
+	// if not cahced and has error: advertise_sid = 0 -> don't avdvertise
+	// if not cahced and doesn't have error, use advertise_sid which is set by repo_config_get_bool; the logic
+	// inside the if block will NOT run
 	if (advertise_sid == -1 &&
 	    repo_config_get_bool(r, "transfer.advertisesid", &advertise_sid))
+
 		advertise_sid = 0;
 	if (!advertise_sid)
 		return 0;
