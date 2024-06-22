@@ -1,3 +1,10 @@
+/**
+ * @file transport.c
+ * @brief Git transport functions
+ *
+ * This files include function about how git transport data over the internet.
+ */
+
 #include "git-compat-util.h"
 #include "advice.h"
 #include "config.h"
@@ -199,9 +206,20 @@ static int close_bundle(struct transport *transport)
 	return 0;
 }
 
+/**
+ * @brief Git transport data.
+ */
 struct git_transport_data {
 	struct git_transport_options options;
+	/**
+	 * Connection child process
+	 */
 	struct child_process *conn;
+	/**
+	 * File descriptor array.
+	 * fd[0] read from child process's stdout;
+	 * fd[1] write to child's stdin.
+	 */
 	int fd[2];
 	unsigned finished_handshake : 1;
 	enum protocol_version version;
@@ -266,6 +284,21 @@ static int set_git_option(struct git_transport_options *opts,
 	return 1;
 }
 
+/**
+ * @brief Git Connection Setup.
+ *
+ * Make preparation to set up a git connection. Prepartions inlude:
+ *  - is this IPv4 or IPv6 connection?
+ *  - CONNECT_VERBOSE flag
+ *
+ * Call @ref git_connect "Create a git connection" to create a git connection.
+ *
+ * @param transport.  A pointer to a @ref transport "Transport structure".
+ * @param for_pusht.  Flag to makre for_puts. Yes (1), it is git-receive-pack;
+ * No (0), it is get-upload-pack. Depends on Yes or No, the created connection would 
+ * have a differenct setup.
+ * @return 0 if connection already exists and created.
+ */
 static int connect_setup(struct transport *transport, int for_push)
 {
 	struct git_transport_data *data = transport->data;

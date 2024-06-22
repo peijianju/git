@@ -62,6 +62,12 @@ enum transport_family {
 };
 
 struct bundle_list;
+
+/**
+ * @brief transport structure.
+ *
+ * This structure holds the information for the transport.
+ */
 struct transport {
 	const struct transport_vtable *vtable;
 

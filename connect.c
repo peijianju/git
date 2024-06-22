@@ -1,3 +1,10 @@
+/**
+ * @file connect.c
+ * @brief TBD
+ *
+ * TBD.
+ */
+
 #include "git-compat-util.h"
 #include "config.h"
 #include "environment.h"
@@ -1401,7 +1408,11 @@ static void fill_ssh_args(struct child_process *conn, const char *ssh_host,
 	strvec_push(&conn->args, ssh_host);
 }
 
-/*
+/**
+ * @brief Create a git connection.
+ *
+ * It will create different type of connections based on the url.
+ *
  * This returns the dummy child_process `no_fork` if the transport protocol
  * does not need fork(2), or a struct child_process object if it does.  Once
  * done, finish the connection with finish_connect() with the value returned
@@ -1411,6 +1422,14 @@ static void fill_ssh_args(struct child_process *conn, const char *ssh_host,
  * If it returns, the connect is successful; it just dies on errors (this
  * will hopefully be changed in a libification effort, to return NULL when
  * the connection failed).
+ *
+ * @param fd. int[2], ile descriptor array. fd[0] read from child's stdout;
+ * fd[1] write to child's stdin.
+ * @param url. char ptr, connection url
+ * @param name. char ptr, "git-upload-pack" or "git-receive-pack"
+ * @param prog. char ptr, options of uploadepack, receivepack
+ * @param flags.
+ * @return  child_process.
  */
 struct child_process *git_connect(int fd[2], const char *url,
 				  const char *name,
